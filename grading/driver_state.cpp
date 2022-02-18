@@ -27,7 +27,7 @@ void initialize_render(driver_state& state, int width, int height)
         //this initializes all pixels in image_color to black
         state.image_color[i] = make_pixel(0,0,0);
         //we can set image_depth to anything since we're ignoring it for now lab #5
-        state.image_depth[i] = 100;
+        state.image_depth[i] = __FLT_MAX__;
     }
 
     std::cout<<"TODO: allocate and initialize state.image_color and state.image_depth."<<std::endl;
