@@ -118,13 +118,18 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
     float By_j = B_y + P_j;
     float Cx_i = C_x + P_i;
     float Cy_j = C_y + P_j;
+    //this sets up the bounding box
+    int minx = min(min(Ax_i,Bx_i),Cx_i);
+    int maxx = max(max(Ax_i,Bx_i),Cx_i);
+    int miny = min(min(Ay_j,By_j),Cy_j);
+    int maxy = max(max(Ay_j,By_j),Cy_j);
     //this was a given formula from the lab sheet
     float AREA_ABC = 0.5 * (((Bx_i * Cy_j - (Cx_i * By_j)) - ((Ax_i* Cy_j) - (Cx_i * Ay_j)) + ((Ax_i* By_j) - (Bx_i * Ay_j))));
 
     //we have a forloop for triangle rasterization for all x from xmin to xmax, with a forloop for all y from ymin to ymax
     //i put using namespace std at the top so the max and min functions would work
-    for (int i = min(min(Ax_i,Bx_i),Cx_i); i < max(max(Ax_i,Bx_i),Cx_i); i++){
-        for (int j=min(min(Ay_j,By_j),Cy_j); j<max(max(Ay_j,By_j),Cy_j) ; j++){
+    for (int i = minx; i < maxx; i++){
+        for (int j=miny; j<maxy ; j++){
             //for alpha beta and gamma you just use the same equation for ABC but swap out the letter youre solving for with P
             //or in this case, the i and j's which are going through each min to max values
             float alpha = 0.5 * (((Bx_i * Cy_j)-(Cx_i * By_j))-(( i * Cy_j) - (Cx_i * j))+(( i * By_j)-(Bx_i * j))) /AREA_ABC;
