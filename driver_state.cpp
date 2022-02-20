@@ -53,7 +53,7 @@ void render(driver_state& state, render_type type)
             data_vertex vertex[3]; // 3 vertices per triangle, so 1 data_vertex per vertice
             for (int i =0 ; i<3 ; ++i){ //we're going to go through each vertex in a loop and allocate the data member float* data
                 //for each vertex i, we're going to fill in for each of the j floats in each vertex
-                //j is incremented by 3*state.floats_per_vertex because we are going by vertex
+                //j is incremented by 3*state.floats_per_vertex because we are going by vertices
                 for (int j = 0 ; j< state.num_vertices*state.floats_per_vertex; j += 3 *state.floats_per_vertex){
                     vertex[i].data= &state.vertex_data[(state.floats_per_vertex * i) + j];
                 }
@@ -134,9 +134,11 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
             //or in this case, the i and j's which are going through the bounding box
             float alpha = 0.5 * (((Bx_i * Cy_j)-(Cx_i * By_j))-(( i * Cy_j) - (Cx_i * j))+(( i * By_j)-(Bx_i * j))) /AREA_ABC;
             float beta = 0.5 * ((( i * Cy_j)-(Cx_i * j))-((Ax_i * Cy_j) - (Cx_i * Ay_j))+((Ax_i * j)-( i * Ay_j))) /AREA_ABC;
-            float gamma = 0.5 * (((Bx_i * j)-( i * By_j))-((Ax_i * j)-( i * Ay_j))+((Ax_i * By_j) - (Bx_i * Ay_j))) /AREA_ABC;
-        //this implies 
-        if (alpha >=0 && beta >=0 && gamma <=1){
+            //float gamma = 0.5 * (((Bx_i * j)-( i * By_j))-((Ax_i * j)-( i * Ay_j))+((Ax_i * By_j) - (Bx_i * Ay_j))) /AREA_ABC;
+            float gamma = 1.0 - alpha - beta;
+            //it could work either way i was just making sure
+        //if theyre all greater than 0 or less than 1
+        if ((alpha >=0 && beta >=0 && gamma >=0) && (alpha <=1 && beta <= 1 && gamma <= 1) || (alpha >= 0 && beta >= 0 && gamma <= 1)){
             int index = (state.image_width  * j) + i;
             state.image_color[index] = make_pixel(255,255,255);
         }
