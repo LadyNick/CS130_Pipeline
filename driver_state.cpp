@@ -49,7 +49,7 @@ void render(driver_state& state, render_type type)
         case render_type::triangle:{
             
             //first step: allocal an array of data_geometry objects, one for each vertex
-            data_geometry objs[3];//there is 3 vertices per triangle
+            data_geometry objs[3];//there is 3 vertices per triangle, but we'll just use vertices per tria
             data_vertex vertex[3]; // 3 vertices per triangle, so 1 data_vertex per vertice
             for (int i =0 ; i<3 ; ++i){ //we're going to go through each vertex in a loop and allocate the data member float* data
                 //for each vertex i, we're going to fill in for each of the j floats in each vertex
@@ -107,39 +107,40 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
     float B_y = ((state.image_height/2) * v1.gl_Position[1]);
     float C_x = ((state.image_width/2) * v2.gl_Position[0]);
     float C_y = ((state.image_height/2) * v2.gl_Position[1]);
-    //these are the coordinates for point P where i is x and j is y
-    float  P_i = (state.image_width/2) - 0.5;
-    float  P_j = (state.image_height/2) - 0.5;
-    //These are the coordinates that relate the vertices to the point P coordinates
+    //these are the coordinates for pixel P where i is x and j is ... because its in the center of every pixel u could say
+    //so its like if we had a grid, normally 0,0 would be 0,0 the origin but we want 0,0 to become 0.5 0.5
+    float  width_alter = (state.image_width/2) - 0.5;
+    float  height_alter = (state.image_height/2) - 0.5;
+    //These are the coordinates that relate the vertices to the pixel coordinates
     //we need to transfer the data_geometry positions from NDC's to pixel coordinates
-    float Ax_i = A_x + P_i;
-    float Ay_j = A_y + P_j;
-    float Bx_i = B_x + P_i;
-    float By_j = B_y + P_j;
-    float Cx_i = C_x + P_i;
-    float Cy_j = C_y + P_j;
+    //so theyre in the center of every pixel
+    float Ax = A_x + width_alter;
+    float Ay = A_y + height_alter;
+    float Bx = B_x + width_alter;
+    float By = B_y + height_alter;
+    float Cx = C_x + width_alter;
+    float Cy = C_y + height_alter;
     //this sets up the bounding box
-    int minx = min(min(Ax_i,Bx_i),Cx_i);
-    int maxx = max(max(Ax_i,Bx_i),Cx_i);
-    int miny = min(min(Ay_j,By_j),Cy_j);
-    int maxy = max(max(Ay_j,By_j),Cy_j);
+    int minx = min(min(Ax,Bx),Cx);
+    int maxx = max(max(Ax,Bx),Cx);
+    int miny = min(min(Ay,By),Cy);
+    int maxy = max(max(Ay,By),Cy);
     //this was a given formula from the lab sheet
-    float AREA_ABC = 0.5 * (((Bx_i * Cy_j - (Cx_i * By_j)) - ((Ax_i* Cy_j) - (Cx_i * Ay_j)) + ((Ax_i* By_j) - (Bx_i * Ay_j))));
+    float AREA_ABC = 0.5 * ((Bx * Cy - Cx * By) + (Cx * Ay - Ax * Cy) + (Ax * By - Bx * Ay));
 
     //we have a forloop for triangle rasterization for all x from xmin to xmax, with a forloop for all y from ymin to ymax
     //i put using namespace std at the top so the max and min functions would work
     for (int i = minx; i < maxx; i++){
-        for (int j=miny; j<maxy ; j++){
+        for (int j=miny; j < maxy ; j++){
             //for alpha beta and gamma you just use the same equation for ABC but swap out the letter youre solving for with i or p
             //or in this case, the i and j's which are going through the bounding box
-            float alpha = 0.5 * (((Bx_i * Cy_j)-(Cx_i * By_j))-(( i * Cy_j) - (Cx_i * j))+(( i * By_j)-(Bx_i * j))) /AREA_ABC;
-            float beta = 0.5 * ((( i * Cy_j)-(Cx_i * j))-((Ax_i * Cy_j) - (Cx_i * Ay_j))+((Ax_i * j)-( i * Ay_j))) /AREA_ABC;
-            //float gamma = 0.5 * (((Bx_i * j)-( i * By_j))-((Ax_i * j)-( i * Ay_j))+((Ax_i * By_j) - (Bx_i * Ay_j))) /AREA_ABC;
+            float alpha = 0.5 * ((Bx * Cy - Cx * By) + (Cx * j - i * Cy) + (i * By - Bx * j)) /AREA_ABC;
+            float beta = 0.5 * (( i * Cy - Cx * j) + (Cx * Ay - Ax * Cy) + (Ax * j - i * Ay)) /AREA_ABC;
             float gamma = 1.0 - alpha - beta;
-            //it could work either way i was just making sure
-        //if theyre all greater than 0 or less than 1
-        if ((alpha >=0 && beta >=0 && gamma >=0) && (alpha <=1 && beta <= 1 && gamma <= 1) || (alpha >= 0 && beta >= 0 && gamma <= 1)){
+            //if alpha and beta are positive then gamma must be positive 
+        if(alpha >= 0 && beta >= 0 ){
             int index = (state.image_width  * j) + i;
+            //for now we're just going to have every pixel turn white
             state.image_color[index] = make_pixel(255,255,255);
         }
         }
