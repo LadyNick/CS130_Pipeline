@@ -102,12 +102,12 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
     std::cout<<"TODO: implement rasterization"<<std::endl;
 
     //first we fill out the coordinates for each vertex
-    float A_x = ((state.image_width/2) * v0.gl_Position[0]);
-    float A_y = ((state.image_height/2) * v0.gl_Position[1]);
-    float B_x = ((state.image_width/2) * v1.gl_Position[0]);
-    float B_y = ((state.image_height/2) * v1.gl_Position[1]);
-    float C_x = ((state.image_width/2) * v2.gl_Position[0]);
-    float C_y = ((state.image_height/2) * v2.gl_Position[1]);
+    float A_x = ((state.image_width/2) * v0.gl_Position[0])/v0.gl_Position[3];
+    float A_y = ((state.image_height/2) * v0.gl_Position[1])/v0.gl_Position[3];
+    float B_x = ((state.image_width/2) * v1.gl_Position[0])/v1.gl_Position[3];
+    float B_y = ((state.image_height/2) * v1.gl_Position[1])/v1.gl_Position[3];
+    float C_x = ((state.image_width/2) * v2.gl_Position[0])/v2.gl_Position[3];
+    float C_y = ((state.image_height/2) * v2.gl_Position[1])/v2.gl_Position[3];
     //these are the coordinates for pixel P where i is x and j is ... because its in the center of every pixel u could say
     //so its like if we had a grid, normally 0,0 would be 0,0 the origin but we want 0,0 to become 0.5 0.5
     float  width_alter = (state.image_width/2) - 0.5;
