@@ -28,7 +28,7 @@ void initialize_render(driver_state& state, int width, int height)
         //this initializes all pixels in image_color to black
         state.image_color[i] = make_pixel(0,0,0);
         //we can set image_depth to anything since we're ignoring it for now lab #5
-        state.image_depth[i] = 100;
+        state.image_depth[i] = 100.0;
     }
 
     std::cout<<"TODO: allocate and initialize state.image_color and state.image_depth."<<std::endl;
@@ -47,7 +47,36 @@ void render(driver_state& state, render_type type)
     
     switch(type){
         case render_type::triangle:{
+
+    data_geometry objs[3];
+    data_vertex ver[3];
+      for (int j =0 ; j<state.num_vertices*state.floats_per_vertex; j += 3*state.floats_per_vertex)
+        {
+          for (int i = 0 ; i< 3; i++)
+          {
+            ver[i].data= &state.vertex_data[(state.floats_per_vertex * i) + j];
+            objs[i].data=ver[i].data;
+            state.vertex_shader(ver[i], objs[i], state.uniform_data);
+          }
+           rasterize_triangle(state, objs[0], objs[1], objs[2]);
+          //clip_triangle(state,g,0);
+        }
+
+
+            /*data_geometry objs[3];
+data_vertex ver[3];
+for (int j =0 ; j<state.num_vertices*state.floats_per_vertex; j += 3*state.floats_per_vertex)
+{
+  for (int i = 0 ; i< 3; i++)
+  {
+    ver[i].data= &state.vertex_data[(state.floats_per_vertex * i) + j];
+    objs[i].data=ver[i].data;
+    state.vertex_shader(ver[i], objs[i], state.uniform_data);
+  }
+rasterize_triangle(state, objs[0], objs[1], objs[2]);
+}*/
             
+            /*
             //first step: allocal an array of data_geometry objects, one for each vertex
             data_geometry objs[3];//there is 3 vertices per triangle, but we'll just use vertices per tria
             data_vertex vertex[3]; // 3 vertices per triangle, so 1 data_vertex per vertice
@@ -62,7 +91,7 @@ void render(driver_state& state, render_type type)
                 //we now have on data_gepmetry object for each vertex fully filled
             }
             //call rasterize_triangle to rasterize the triangle
-            rasterize_triangle(state, objs[0], objs[1], objs[2]); 
+            rasterize_triangle(state, objs[0], objs[1], objs[2]); */
         }
         break;
         //leave the remaining cases empty because we don't need them for now
@@ -71,6 +100,8 @@ void render(driver_state& state, render_type type)
         case render_type::strip: {}
         break;
         case render_type::fan: {}
+        break;
+        case render_type::invalid:{}
         break;
     }
 }
@@ -136,12 +167,110 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
             //or in this case, the i and j's which are going through the bounding box
             float alpha = 0.5 * ((Bx * Cy - Cx * By) + (Cx * j - i * Cy) + (i * By - Bx * j)) /AREA_ABC;
             float beta = 0.5 * (( i * Cy - Cx * j) + (Cx * Ay - Ax * Cy) + (Ax * j - i * Ay)) /AREA_ABC;
+            //float gamma = 0.5 * ((Bx * j - i * By) + (i * Ay - Ax * j) + (Ax * By - Bx * Ay)) / AREA_ABC;
             float gamma = 1.0 - alpha - beta;
             //if alpha and beta are positive then gamma must be positive 
-        if(alpha >= 0 && beta >= 0 ){
-            int index = (state.image_width  * j) + i;
-            //for now we're just going to have every pixel turn white
-            state.image_color[index] = make_pixel(255,255,255);
+        if(alpha >= 0 && beta >= 0 && gamma >= 0){
+            data_fragment frag;
+                       float frag_data[state.floats_per_vertex];
+                       frag.data = frag_data;
+
+                        for(int j = 0; j < state.floats_per_vertex; j++)
+                       {
+
+                         switch(state.interp_rules[j])
+                         {
+                           case interp_type::flat:
+                                {frag.data[j]= v0.data[j];}
+
+                             break;
+                           case interp_type::smooth:{}
+                             break;
+                           case interp_type::noperspective:
+                            {   
+                                
+                                frag.data[j] = alpha * v0.data[j] + beta * v1.data[j]+gamma * v2.data[j];}
+                             break;
+                           case interp_type::invalid:
+                             break;
+                         }
+                       }
+
+
+
+                        //call fragment shader
+                       data_output dOut;
+                       state.fragment_shader(frag, dOut,state.uniform_data);
+                       //std::cout<< c.olor.output_color <<std::endl;
+                       int red = 255 * dOut.output_color[0];
+                       int green = 255 * dOut.output_color[1];
+                       int blue = 255 * dOut.output_color[2];
+
+                         /*int index = state.image_width  * j + i;
+               state.image_color[index] = make_pixel(red,green,blue);*/
+                        //std::cout<< red <<std::endl;
+
+                        float z = (alpha * v0.gl_Position[2]/v0.gl_Position[3])+(beta*v1.gl_Position[2]/v1.gl_Position[3])+(gamma*v2.gl_Position[2]/v2.gl_Position[3]);
+        int index = (state.image_width * j) + i;
+
+
+        if(state.image_depth[index] > z)
+        {
+
+          state.image_depth[index] = z;
+          state.image_color[index] = make_pixel(red,green,blue);
+        }
+
+
+
+            /*
+            //this means that the point is inside the triangle
+
+            //depth value z
+            float z_val = (alpha * v0.gl_Position[2] / v0.gl_Position[3]) +(beta * v1.gl_Position[2] / v1.gl_Position[3]) + (gamma * v2.gl_Position[2] / v2.gl_Position[3]);
+
+            if(z_val < state.image_depth[j+i * state.image_width]){
+
+
+            //now we do interpolation
+            data_fragment fragment;
+            data_output out;
+				
+			fragment.data = new float[MAX_FLOATS_PER_VERTEX];
+
+            for(int k=0;k<state.floats_per_vertex;k++){
+                
+                switch(state.interp_rules[k]){
+                    case interp_type::invalid:{}
+                    break;
+
+                    case interp_type::flat:{
+                        fragment.data[j]= v0.data[k];
+                    }
+                    break;
+
+                    case interp_type::smooth:{}
+                    break;
+
+                    case interp_type::noperspective:{
+                        fragment.data[k] = alpha * v0.data[k] + beta * v1.data[k] + gamma * v2.data[k];
+                    }
+                    break;
+                }
+            }
+
+            //now that frag.data is filled we can call fragment_shader to make out.output_color the correct color
+				state.fragment_shader(fragment, out, state.uniform_data);
+				//dont forget to delete after use so we dont have memory leaks
+				delete[] fragment.data;
+				//Now out.output_color has a value [0,1] so need to multiply by 255 for each index of RGB
+				state.image_color[j + i * state.image_width] = make_pixel(out.output_color[0] * 255, out.output_color[1] * 255, out.output_color[2] * 255);
+				//Update the image_depth to be equal to the updated depth
+				state.image_depth[j + i * state.image_width] = z_val;
+            
+
+
+            }*/
         }
         }
    }
