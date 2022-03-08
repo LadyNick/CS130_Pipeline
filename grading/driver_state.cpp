@@ -128,10 +128,8 @@ void render(driver_state& state, render_type type)
 // simply pass the call on to rasterize_triangle.
 void clip_triangle(driver_state& state, const data_geometry& v0,
     const data_geometry& v1, const data_geometry& v2,int face)
-{
-
-   
-    if(face==6)
+{   
+   if(face==6)
     {//this means that this is the default case
         rasterize_triangle(state, v0, v1, v2);
         //i might try removing this part since technically there is 5 faces, 
@@ -232,10 +230,10 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
     }
     //negative z plane
     if(face == 4){
-        cout << "face4" << endl;
-        cout << v0.gl_Position[0] << v0.gl_Position[1] << v0.gl_Position[2] << v0.gl_Position[3] << endl;
-        cout << v1.gl_Position[0] << " " << v1.gl_Position[1] <<" "<< v1.gl_Position[2] << endl;
-        cout << v2.gl_Position[0] <<" " << v2.gl_Position[1] << " " << v2.gl_Position[2] << endl;
+        //cout << "face4" << endl;
+        //cout << v0.gl_Position[0] << v0.gl_Position[1] << v0.gl_Position[2] << v0.gl_Position[3] << endl;
+        //cout << v1.gl_Position[0] << " " << v1.gl_Position[1] <<" "<< v1.gl_Position[2] << endl;
+        //cout << v2.gl_Position[0] <<" " << v2.gl_Position[1] << " " << v2.gl_Position[2] << endl;
 
         //inside if -w <= z
         //the w value in in gl_position 3
@@ -251,12 +249,12 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
             cvert = true;
         }
         else{ cvert = false; }
-        cout << avert << bvert << cvert << endl;
+        
     }
    
     //positive z plane
     if(face == 5){
-      cout << "got to face 5" << endl;
+      //cout << "got to face 5" << endl;
         //inside if z <= w
         //the w value in in gl_position 3
         if(v0.gl_Position[2] <= v0.gl_Position[3]){
@@ -271,7 +269,7 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
             cvert = true;
         }
         else{ cvert = false; }
-        cout << avert << bvert << cvert << endl;
+        //cout << avert << bvert << cvert << endl;
     }
 
     //at this point we know what vertices are inside and what vertices are outside
@@ -307,6 +305,16 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         //have to rewrite it, since theres more interpolation before clipping again
         makevertex(tri1[1], v2, v0, face, state, data1);
         makevertex(tri1[2], v2, v1, face, state, data2);
+
+        if(face == 5){
+            cout << "1 tri" << endl;
+            cout << avert << bvert << cvert << endl;
+            cout << tri1[0].gl_Position[2] << " "<< tri1[0].gl_Position[3] << endl;
+            cout << tri1[1].gl_Position[2] << " "<< tri1[1].gl_Position[3] << endl;
+            cout << tri1[2].gl_Position[2] << " "<< tri1[2].gl_Position[3] << endl;
+        }
+
+
         //since at this moment the triangle is changeable, in order to
         //pass it through clip again we need to mkae it a constant
         //const data_geometry trigl1 = const_cast<data_geometry>(tri1);
@@ -325,6 +333,13 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         //since at this moment the triangle is changeable, in order to
         //pass it through clip again we need to mkae it a constant
         //const data_geometry trigl1 = const_cast<data_geometry>(tri1);
+        if(face == 5){
+            cout << "1 tri" << endl;
+            cout << avert << bvert << cvert << endl;
+            cout << tri1[0].gl_Position[2] << " "<< tri1[0].gl_Position[3] << endl;
+            cout << tri1[1].gl_Position[2] << " "<< tri1[1].gl_Position[3] << endl;
+            cout << tri1[2].gl_Position[2] << " "<< tri1[2].gl_Position[3] << endl;
+        }
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
 
     }
@@ -340,6 +355,13 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         //since at this moment the triangle is changeable, in order to
         //pass it through clip again we need to mkae it a constant
         //const data_geometry trigl1 = const_cast<data_geometry>(tri1);
+        if(face == 5){
+            cout << "1 tri" << endl;
+            cout << avert << bvert << cvert << endl;
+            cout << tri1[0].gl_Position[2] << " "<< tri1[0].gl_Position[3] << endl;
+            cout << tri1[1].gl_Position[2] << " "<< tri1[1].gl_Position[3] << endl;
+            cout << tri1[2].gl_Position[2] << " "<< tri1[2].gl_Position[3] << endl;
+        }
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
     }
     //now we can handle the 1out 2 in cases
@@ -357,6 +379,16 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         makevertex(tri2[1], v1, v2, face, state, data2);
         tri2[2].gl_Position = tri1[2].gl_Position;
         tri2[2].data = tri1[2].data;
+        if(face == 5){
+            cout << "two tri" << endl;
+            cout << avert << bvert << cvert << endl;
+            cout << tri1[0].gl_Position[2] << " "<< tri1[0].gl_Position[3] << endl;
+            cout << tri1[1].gl_Position[2] << " "<< tri1[1].gl_Position[3] << endl;
+            cout << tri1[2].gl_Position[2] << " "<< tri1[2].gl_Position[3] << endl;
+            cout << tri2[0].gl_Position[2] << " "<< tri2[0].gl_Position[3] << endl;
+            cout << tri2[1].gl_Position[2] << " "<< tri2[1].gl_Position[3] << endl;
+            cout << tri2[2].gl_Position[2] << " "<< tri2[2].gl_Position[3] << endl;
+        }
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
         clip_triangle(state, tri2[0], tri2[1], tri2[2], face+1);
     }
@@ -374,6 +406,16 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         makevertex(tri2[1], v0, v1, face, state, data2);
         tri2[2].gl_Position = tri1[2].gl_Position;
         tri2[2].data = tri1[2].data;
+        if(face == 5){
+            cout << "two tri" << endl;
+            cout << avert << bvert << cvert << endl;
+            cout << tri1[0].gl_Position[2] << " "<< tri1[0].gl_Position[3] << endl;
+            cout << tri1[1].gl_Position[2] << " "<< tri1[1].gl_Position[3] << endl;
+            cout << tri1[2].gl_Position[2] << " "<< tri1[2].gl_Position[3] << endl;
+            cout << tri2[0].gl_Position[2] << " "<< tri2[0].gl_Position[3] << endl;
+            cout << tri2[1].gl_Position[2] << " "<< tri2[1].gl_Position[3] << endl;
+            cout << tri2[2].gl_Position[2] << " "<< tri2[2].gl_Position[3] << endl;
+        }
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
         clip_triangle(state, tri2[0], tri2[1], tri2[2], face+1);
     }
@@ -385,14 +427,25 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
         tri1[0].data = v1.data;
         tri1[1].gl_Position=v2.gl_Position;
         tri1[1].data=v2.data;  //v2 is for c
-        makevertex(tri1[2],v2,v1,face,state, data1);
+        makevertex(tri1[2],v1,v0,face,state, data1);
         tri2[0].gl_Position=v2.gl_Position; //v2 is for c
         tri2[0].data=v2.data;
         makevertex(tri2[1], v2, v0, face, state,data2);
         tri2[2].gl_Position = tri1[2].gl_Position;
         tri2[2].data = tri1[2].data;
-        cout << tri1[2].gl_Position[0] << " " << tri1[2].gl_Position[1] <<" "<< tri1[2].gl_Position[2] << endl;
-        cout << tri2[1].gl_Position[0] << " " << tri2[1].gl_Position[1] <<" "<< tri2[1].gl_Position[2] << endl;
+    
+        if(face == 5){
+            cout << "two tri" << endl;
+            cout << avert << bvert << cvert << endl;
+            cout << tri1[0].gl_Position[2] << " "<< tri1[0].gl_Position[3] << endl;
+            cout << tri1[1].gl_Position[2] << " "<< tri1[1].gl_Position[3] << endl;
+            cout << tri1[2].gl_Position[2] << " "<< tri1[2].gl_Position[3] << endl;
+            cout << tri2[0].gl_Position[2] << " "<< tri2[0].gl_Position[3] << endl;
+            cout << tri2[1].gl_Position[2] << " "<< tri2[1].gl_Position[3] << endl;
+            cout << tri2[2].gl_Position[2] << " "<< tri2[2].gl_Position[3] << endl;
+        }
+        //cout << tri1[2].gl_Position[0] << " " << tri1[2].gl_Position[1] <<" "<< tri1[2].gl_Position[2] << endl;
+        //cout << tri2[1].gl_Position[0] << " " << tri2[1].gl_Position[1] <<" "<< tri2[1].gl_Position[2] << endl;
         //cout << v1.gl_Position[0] << " " << v1.gl_Position[1] <<" "<< v1.gl_Position[2] << endl;
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
         clip_triangle(state, tri2[0], tri2[1], tri2[2], face+1);
@@ -414,7 +467,7 @@ void makevertex(data_geometry& vertexmake, const data_geometry& verta, const dat
         alphapers = (vertb.gl_Position[3] - vertb.gl_Position[face/2]) / ( (verta.gl_Position[face/2] - verta.gl_Position[3]) - (vertb.gl_Position[face/2] - vertb.gl_Position[3]) );
     }
     else{//face is soemthing else, so its negative
-        alphapers = -(vertb.gl_Position[face/2] + vertb.gl_Position[3]) / (  (verta.gl_Position[face/2] + verta.gl_Position[3]) - (vertb.gl_Position[face/2] + vertb.gl_Position[3]) );
+        alphapers = -(vertb.gl_Position[3] + vertb.gl_Position[face/2]) / (  (verta.gl_Position[face/2] + verta.gl_Position[3]) - (vertb.gl_Position[3] + vertb.gl_Position[face/2]) );
     }
     
     //from lecture, p = alpha*a + (1-alpha)*b
@@ -549,7 +602,7 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
         int index = (state.image_width * j) + i;
 
         //we will not color the indexed pixel if it doesn't meet the requirement
-        if(state.image_depth[index] > z_buff && z_buff > -1 && z_buff < 1){
+        if(state.image_depth[index] > z_buff){
           state.image_depth[index] = z_buff;
           //establish color for the pixel that is the frontmost 
           state.image_color[index] = make_pixel(255 * out.output_color[0], 255* out.output_color[1], 255* out.output_color[2]);
