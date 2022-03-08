@@ -129,9 +129,202 @@ void render(driver_state& state, render_type type)
 void clip_triangle(driver_state& state, const data_geometry& v0,
     const data_geometry& v1, const data_geometry& v2,int face)
 {
+    data_geometry arr[3];
+  data_geometry o[3];
+  data_vertex ver[3];
+    data_geometry g[3];
+ 
+        arr[0].gl_Position= v0->gl_Position;
+        arr[1].gl_Position = v1->gl_Position;
+        arr[2].gl_Position = v2->gl_Position;
+     
+  int  position =0, value =0;
+
+    if(face==6)
+    {
+
+        rasterize_triangle(state, v0, v1, v2);
+        return;
+    }
+      else if (face==0 )
+    {
+      position = 0;
+      value =1;
+    }
+      else if (face ==1)// set the position values
+    {
+        position =0;
+        value =-1;
+    }
+    else if (face == 2)
+    {
+      position =1;
+      value =1;
+    }
+    else if (face == 3 )
+    {
+      position =1;
+      value =-1;
+    }
+    else if (face == 4 )
+    {
+      position =2;
+      value =1;
+    }
+    else if (face == 5 )
+    {
+      position =2;
+       value =-1;
+    }
+   
+vec3 tri = {0,0,0};
+int count =0;
+
+  if (value == -1)
+    {
+      if(v0->gl_Position[position] >= -v0->gl_Position[3])
+        {
+        count++;
+        tri[0] = 1;
+        }
+     }
+    else if(v0->gl_Position[position] <=  v0->gl_Position[3])
+     {
+      count++;
+      tri[0] = 1;
+      }
+    if (value == -1)
+    {
+      if(v1->gl_Position[position] >= -v1->gl_Position[3])
+        {
+        count++;
+        tri[1] = 1;
+        }
+     }
+    else if(v1->gl_Position[position] <=  v1->gl_Position[3])
+     {
+      count++;
+      tri[1] = 1;
+      }
+    if (value == -1)
+    {
+      if(v2->gl_Position[position] >= -v2->gl_Position[3])
+        {
+        count++;
+        tri[2] = 1;
+        }
+     }
+    else if(v2->gl_Position[position] <=  v2->gl_Position[3])
+     {
+      count++;
+      tri[2] = 1;
+      }
+    
+    
+if (count ==3 )
+{
+//everything inside
+  clip_triangle(state,v0,v1,v2 ,face+1);
+  return;
+}
+if (count ==0 )
+{
+  //everything is outside, ..... so no cares
+  return;
+}
+
+data_geometry* in[3];
+in[0] = v0;
+in[1] = v1;
+in[2] = v2;
+    
+const data_geometry a =0;
+const data_geometry b =0;
+const data_geometry c = 0;
+for (int i =0; i<3; i++)
+{
+  if ((count ==1 && tri[i]==1 ) || (count ==2 && tri[i]==0))
+   {
+//setting the triangles vertices;
+     a = in[i];
+     b = in[(i+1)%3];
+     c = in[(i+2)%3];
+   }
+}
+float position_A = a->gl_Position[3];
+float position_B = b->gl_Position[3];
+float position_C = c->gl_Position[3];
+float beta = ((value * position_B) - b->gl_Position[position]) / ((a->gl_Position[position] - (value * position_A)) + ((value * position_B) - b->gl_Position[position]));
+float gamma = ((value * position_C) - c->gl_Position[position]) / ((a->gl_Position[position] - (value * position_A)) + ((value * position_C) - c->gl_Position[position]));
+
+data_geometry* ba = new data_geometry();
+data_geometry* ca = new data_geometry();
+ float BA_data[state.floats_per_vertex];
+ba->data= BA_data;
+float CA_data[state.floats_per_vertex];
+ca->data= CA_data;
+for (int j =0; j<state.floats_per_vertex;  j++)
+{
+  switch(state.interp_rules[j])
+  {
+    case interp_type::flat:
+    {
+      ba->data[j]=a->data[j];
+      ca->data[j]=a->data[j];
+    }break;
+    case interp_type::smooth:
+    {
+      ba->data[j]= beta* a->data[j]+ ((1-beta)*b->data[j]);
+      ca->data[j]= gamma* a->data[j]+((1-gamma)*c->data[j]);
+
+    }break;
+    case interp_type::noperspective:
+    {
+      float  k = (beta*position_A)+((1-beta)*position_B);
+      float alpha_prime = (beta * position_A)/k;
+      ba->data[j]= (alpha_prime * a->data[j])+((1-alpha_prime )*b->data[j]);
+      float k_gamma = (gamma *position_A)+((1-gamma)*position_C);
+      float gamma_prime = (gamma*position_A)/k_gamma;
+      ca->data[j]= (gamma_prime*a->data[j])+((1-gamma_prime)*c->data[j]);
+    }break;
+    default : std::cout<<"GOD!HELP ME!!!!!!"<<std::endl;
+
+  }
+
+}
+for (int i = 0;i<4; i++)
+{
+  ba->gl_Position[i]= (beta * a->gl_Position[i]) + ((1-beta)*b->gl_Position[i]);
+  ca->gl_Position[i]= (gamma * a->gl_Position[i]) + ((1-gamma)*c->gl_Position[i]);
+
+}
+
+
+if (count ==1)
+{
+  g[0]=a;
+  g[1]=ba;
+  g[2]=ca;
+  clip_triangle(state,g[0], g[1], g[2],face+1);
+
+  return;
+}
+if (count ==2 )
+{
+  g[0]=ba;
+  g[1]=b;
+  g[2]=c;
+  clip_triangle(state,g[0], g[1], g[2],face+1);
+  g[0]=c;
+  g[1]=ca;
+  g[2]=ba;
+  clip_triangle(state,g[0], g[1], g[2],face+1);
+  return;
+    
+    
 
    
-    if(face==6)
+   /* if(face==6)
     {//this means that this is the default case
         rasterize_triangle(state, v0, v1, v2);
         //i might try removing this part since technically there is 5 faces, 
@@ -454,7 +647,7 @@ void makevertex(data_geometry& vertexmake, const data_geometry& verta, const dat
         }
 
     }
-    vertexmake.data = new_data;
+    vertexmake.data = new_data;*/
 }
 
 // Rasterize the triangle defined by the three vertices in the "in" array.  This
