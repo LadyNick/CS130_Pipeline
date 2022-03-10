@@ -464,8 +464,8 @@ void rasterize_triangle(driver_state& state, const data_geometry& v0,
 
     //we have a forloop for triangle rasterization for all x from xmin to xmax, with a forloop for all y from ymin to ymax
     //i put using namespace std at the top so the max and min functions would work
-    for (int i = minx; i < maxx; i++){ //track of current x
-        for (int j=miny; j < maxy ; j++){ //track of current y
+    for (int i = minx; i < (maxx+1); i++){ //track of current x
+        for (int j=miny; j < (maxy+1) ; j++){ //track of current y
             //for alpha beta and gamma you just use the same equation for ABC but swap out the letter youre solving for with i or p
             //or in this case, the i and j's which are going through the bounding box
             float alpha = 0.5 * ((Bx * Cy - Cx * By) + (Cx * j - i * Cy) + (i * By - Bx * j)) /AREA_ABC;
