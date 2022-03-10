@@ -59,7 +59,6 @@ void render(driver_state& state, render_type type)
                     //we need to fill in the contents of the objects, using vertex shader
                     state.vertex_shader(vertex[j], objs[j], state.uniform_data);
                 }
-                //we now have on data_gepmetry object for each vertex fully filled
             //call rasterize_triangle to rasterize the triangle
             //rasterize_triangle(state, objs[0], objs[1], objs[2]); 
             clip_triangle(state, objs[0], objs[1], objs[2], 0);
@@ -96,36 +95,16 @@ void render(driver_state& state, render_type type)
         }
         break;
         case render_type::fan: {
-            data_geometry objs[3];
-            data_vertex vertex[3];
-            int inc = 1;
-            objs[0].data =  vertex[0].data = state.vertex_data;
-            for(int i =0; i>state.num_vertices-2;i++){
-                for(int j = 1; i<3; j++){
-                    objs[j].data = vertex[j].data = state.vertex_data + (inc * state.floats_per_vertex);
-                    inc++;
-                }
-                inc--;
-                for(int k = 0; k<3;k++){
-                    state.vertex_shader(vertex[k], objs[k], state.uniform_data);
-                }
-                clip_triangle(state, objs[0],objs[1],objs[2],0);
+            data_geometry objs[state.num_vertices];
+            data_vertex vertex[state.num_vertices];
+            objs[0].data = vertex[0].data = &state.vertex_data[0];
+            state.vertex_shader(vertex[0], objs[0], state.uniform_data);
+            for(int i = 1; i < state.num_vertices; i++){
+                objs[i].data = vertex[i].data = &state.vertex_data[state.floats_per_vertex*(i)];
+                state.vertex_shader(vertex[i], objs[i], state.uniform_data);
+                    clip_triangle(state, objs[0], objs[i-1], objs[i], 0);
             }
-
-            /*for(int i = 0; i<state.num_vertices; i++){
-                for(int j = 0; j<3; j++){
-                    int k = ((i+j)*state.floats_per_vertex );
-                    if(j == 0){
-                        k=0;
-                    }
-                    objs[j].data = vertex[j].data = state.vertex_data + k;
-                    state.vertex_shader(vertex[j], objs[j], state.uniform_data);
-                    }
-                }*/
-                //rasterize_triangle(state, objs[0], objs[1], objs[2]);
-                //clipping
-                //clip_triangle(state, objs[0], objs[1], objs[2], 0);
-            }
+        }
         break;
         case render_type::invalid: {
             cout << "Invalid" << endl; //i think we had an invalid case but i dunno if 
@@ -286,11 +265,8 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
     //meaning now we should make triangles if there are any triangles to be made
     //HOWEVER, we don't know how many triangles will be made and we don't know 
     //what vertices will make the edges if there are any triangles, so we have 
-    //to try every options
-    data_geometry tri1[3];
-    data_geometry tri2[3];
-    float data1[MAX_FLOATS_PER_VERTEX];
-    float data2[MAX_FLOATS_PER_VERTEX];
+    //to try all the option
+
     //if all are inside, pass the triangle to the next stage
     if(avert && bvert && cvert){
         clip_triangle(state, v0, v1, v2, face+1);
@@ -304,116 +280,111 @@ void clip_triangle(driver_state& state, const data_geometry& v0,
     //now we need to handle the remaning cases that result in triangles
     //2 out 1 in, 1 triangle
     else if(!avert && !bvert && cvert){
+        data_geometry tri1[3];
+        float datavertex1[MAX_FLOATS_PER_VERTEX];
+        float datavertex2[MAX_FLOATS_PER_VERTEX];
         //lets make a triangle
         //c is base because c is only one in
-        //data_geometry tri1[3];
         tri1[0].gl_Position = v2.gl_Position;
         tri1[0].data = v2.data;
 
         //and now the annoying part where we have to make the other vertices
         //ca and cb, which is gonna be a while so I'll make a helper so I don't
         //have to rewrite it, since theres more interpolation before clipping again
-        makevertex(tri1[1], v2, v0, face, state, data1);
-        makevertex(tri1[2], v2, v1, face, state, data2);
-
-
-        //since at this moment the triangle is changeable, in order to
-        //pass it through clip again we need to mkae it a constant
-        //const data_geometry trigl1 = const_cast<data_geometry>(tri1);
+        makevertex(tri1[1], v2, v0, face, state, datavertex1);
+        makevertex(tri1[2], v2, v1, face, state, datavertex2);
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
 
     }
     else if(!avert && bvert && !cvert){
         //lets make a triangle
         //use b as the base since b is in
-        //data_geometry tri1[3];
+        data_geometry tri1[3];
+        float datavertex1[MAX_FLOATS_PER_VERTEX];
+        float datavertex2[MAX_FLOATS_PER_VERTEX];
         tri1[0].gl_Position = v1.gl_Position;
         tri1[0].data = v1.data;
         //make vertices ba and bc
-        makevertex(tri1[1], v1, v2, face, state, data1);
-        makevertex(tri1[2], v1, v0, face, state, data2);
-        //since at this moment the triangle is changeable, in order to
-        //pass it through clip again we need to mkae it a constant
-        //const data_geometry trigl1 = const_cast<data_geometry>(tri1);
-
+        makevertex(tri1[1], v1, v2, face, state, datavertex1);
+        makevertex(tri1[2], v1, v0, face, state, datavertex2);
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
 
     }
     else if(avert && !bvert && !cvert){
         //lets make a triangle
         //since a is the one in, we're working with a
-       // data_geometry tri1[3];
+        data_geometry tri1[3];
+        float datavertex1[MAX_FLOATS_PER_VERTEX];
+        float datavertex2[MAX_FLOATS_PER_VERTEX];
         tri1[0].gl_Position = v0.gl_Position;
         tri1[0].data = v0.data;
         //make vertices ab and ac
-        makevertex(tri1[1], v0, v1, face, state, data1);
-        makevertex(tri1[2], v0, v2, face, state, data2);
-        //since at this moment the triangle is changeable, in order to
-        //pass it through clip again we need to mkae it a constant
-        //const data_geometry trigl1 = const_cast<data_geometry>(tri1);
-
+        makevertex(tri1[1], v0, v1, face, state, datavertex1);
+        makevertex(tri1[2], v0, v2, face, state, datavertex2);
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
     }
     //now we can handle the 1out 2 in cases
     else if(avert && bvert && !cvert){
-        //data_geometry tri1[3];
-        //data_geometry tri2[3];
+        data_geometry tri1[3];
+        data_geometry tri2[3];
+        float datavertex1[MAX_FLOATS_PER_VERTEX];
+        float datavertex2[MAX_FLOATS_PER_VERTEX];
         //this time because we have 2 in, we can set two of the vertices to the ones that are in
         tri1[0].gl_Position=v0.gl_Position; //v0 is for a
         tri1[0].data = v0.data;
         tri1[1].gl_Position=v1.gl_Position;
         tri1[1].data=v1.data;  //v1 is for b
-        makevertex(tri1[2],v0,v2,face,state, data1);
+        makevertex(tri1[2],v0,v2,face,state, datavertex1);
         tri2[0].gl_Position=v1.gl_Position; //v1 is for b
         tri2[0].data=v1.data;
-        makevertex(tri2[1], v1, v2, face, state, data2);
+        makevertex(tri2[1], v1, v2, face, state, datavertex2);
         tri2[2].gl_Position = tri1[2].gl_Position;
         tri2[2].data = tri1[2].data;
-        
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
         clip_triangle(state, tri2[0], tri2[1], tri2[2], face+1);
     }
     else if(avert && !bvert && cvert){
-        //data_geometry tri1[3];
-        //data_geometry tri2[3];
+        data_geometry tri1[3];
+        data_geometry tri2[3];
+        float datavertex1[MAX_FLOATS_PER_VERTEX];
+        float datavertex2[MAX_FLOATS_PER_VERTEX];
         //this time because we have 2 in, we can set two of the vertices to the ones that are in
         tri1[0].gl_Position=v2.gl_Position; //v2 is for c
         tri1[0].data = v2.data;
         tri1[1].gl_Position=v0.gl_Position;
         tri1[1].data=v0.data;  //v0 is for a
-        makevertex(tri1[2],v2,v1,face,state, data1);
+        makevertex(tri1[2],v2,v1,face,state, datavertex1);
         tri2[0].gl_Position=v0.gl_Position; //v0 is for a
         tri2[0].data=v0.data;
-        makevertex(tri2[1], v0, v1, face, state, data2);
+        makevertex(tri2[1], v0, v1, face, state, datavertex2);
         tri2[2].gl_Position = tri1[2].gl_Position;
         tri2[2].data = tri1[2].data;
-        
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
         clip_triangle(state, tri2[0], tri2[1], tri2[2], face+1);
     }
     else if(!avert && bvert && cvert){
-        //data_geometry tri1[3];
-        //data_geometry tri2[3];
+        data_geometry tri1[3];
+        data_geometry tri2[3];
+        float datavertex1[MAX_FLOATS_PER_VERTEX];
+        float datavertex2[MAX_FLOATS_PER_VERTEX];
         //this time because we have 2 in, we can set two of the vertices to the ones that are in
         tri1[0].gl_Position=v1.gl_Position; //v1 is for b
         tri1[0].data = v1.data;
         tri1[1].gl_Position=v2.gl_Position;
         tri1[1].data=v2.data;  //v2 is for c
-        makevertex(tri1[2],v1,v0,face,state, data1);
+        makevertex(tri1[2],v1,v0,face,state, datavertex1);
         tri2[0].gl_Position=v2.gl_Position; //v2 is for c
         tri2[0].data=v2.data;
-        makevertex(tri2[1], v2, v0, face, state,data2);
+        makevertex(tri2[1], v2, v0, face, state,datavertex2);
         tri2[2].gl_Position = tri1[2].gl_Position;
         tri2[2].data = tri1[2].data;
-    
-       
         clip_triangle(state, tri1[0], tri1[1], tri1[2], face+1);
         clip_triangle(state, tri2[0], tri2[1], tri2[2], face+1);
     }
     
 }
 
-void makevertex(data_geometry& vertexmake, const data_geometry& verta, const data_geometry& vertb, int face, driver_state& state, float* new_data){
+void makevertex(data_geometry& vertexmake, const data_geometry& verta, const data_geometry& vertb, int face, driver_state& state, float* vertexmakedata){
     
     //from lecture, we got an equation for positive alpha and negative alpha
     //alpha left = -(xb + wb)/ ( (xa + wa) - (xb + wb) )
@@ -421,43 +392,28 @@ void makevertex(data_geometry& vertexmake, const data_geometry& verta, const dat
     //we'll have a vertex a and a vertex b just to go with the equation
     //so first we calculate alpha
     float alphapers;
-    
-
-    if(face == 1 || face == 3 || face == 5){//its from the right, so alpha right
-        alphapers = (vertb.gl_Position[3] - vertb.gl_Position[face/2]) / ( (verta.gl_Position[face/2] - verta.gl_Position[3]) - (vertb.gl_Position[face/2] - vertb.gl_Position[3]) );
-    }
-    else{//face is soemthing else, so its negative
-        alphapers = -(vertb.gl_Position[3] + vertb.gl_Position[face/2]) / (  (verta.gl_Position[face/2] + verta.gl_Position[3]) - (vertb.gl_Position[3] + vertb.gl_Position[face/2]) );
-    }
-    
+    //its from the right so alpha right because the 1 3 5 faces are the positives
+    if(face == 1 || face == 3 || face == 5){alphapers = (vertb.gl_Position[3] - vertb.gl_Position[face/2]) / ( (verta.gl_Position[face/2] - verta.gl_Position[3]) - (vertb.gl_Position[face/2] - vertb.gl_Position[3]) );}
+    else{alphapers = -(vertb.gl_Position[3] + vertb.gl_Position[face/2]) / (  (verta.gl_Position[face/2] + verta.gl_Position[3]) - (vertb.gl_Position[3] + vertb.gl_Position[face/2]) );}
+    //^^ alpha left otherwise
     //from lecture, p = alpha*a + (1-alpha)*b
     //now we have the correct position in the vertex were making
     vertexmake.gl_Position = alphapers * verta.gl_Position + (1 - alphapers) * vertb.gl_Position;
-    
-
     //mnow were gonna do a repeat of what we did in rasterize triangle where we did interpolation
     for(int i =0; i<state.floats_per_vertex; i++){
       
         switch(state.interp_rules[i]){
             case interp_type::flat:{
-               
-                new_data[i] = verta.data[i];
-           
-
+                vertexmakedata[i] = verta.data[i];
             }
             break;
             case interp_type::smooth:{
-             
-                new_data[i] = alphapers * verta.data[i] + (1-alphapers)*vertb.data[i];
-                
+                vertexmakedata[i] = alphapers * verta.data[i] + (1-alphapers)*vertb.data[i];
             }
             break;
             case interp_type::noperspective:{
-                //different alpha 
-             
                 float nopersa = alphapers * verta.gl_Position[3]/(alphapers * verta.gl_Position[3] + (1-alphapers)*vertb.gl_Position[3]);
-                new_data[i] = nopersa*verta.data[i] + (1-nopersa) *vertb.data[i];
-
+                vertexmakedata[i] = nopersa*verta.data[i] + (1-nopersa) *vertb.data[i];
             }
             break;
             case interp_type::invalid:{
@@ -467,7 +423,7 @@ void makevertex(data_geometry& vertexmake, const data_geometry& verta, const dat
         }
 
     }
-    vertexmake.data = new_data;
+    vertexmake.data = vertexmakedata;
 }
 
 // Rasterize the triangle defined by the three vertices in the "in" array.  This
